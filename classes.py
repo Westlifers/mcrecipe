@@ -1,5 +1,6 @@
 # from data.dicts import namespace, tags
 """注意，item是指Item类，或者{'item': 'minecraft:xxx'}这样的一个字典，而tag是指Tag类，或者{'tag': 'minecraft:xxx'}这样的一个字典"""
+from PIL import Image
 from os import path
 import json
 # 为了避免与dicts形成互引用，直接把这段代码搬过来了......
@@ -64,6 +65,13 @@ class Tag:
         self.val = val
 
 
+def get_image_by_Item(item: Item) -> Image:
+    """通过Item对象返回对应的图片"""
+    filename = item.id.replace('minecraft:', '')
+    images_path = path.join(path.dirname(__file__), 'data', 'images', filename + '.png')
+    return Image.open(images_path)
+
+
 # 配方通用类
 class Recipe:
     def __init__(self, type_: str, group: str):
@@ -102,6 +110,23 @@ class Burning(Recipe):
             rep += f'\n其中，{list(cache.keys())[0].name}可以替换成{[x.name for x in list(cache.values())[0]]}'
         rep += f'\n烧炼时间：{self.cookingtime}秒'
         return rep
+
+    def image(self) -> Image:
+        background = Image.open(path.join(path.dirname(__file__), 'data', 'images', 'burning.png'))
+        if type(self.ingredient) == list:
+            ingredient = self.ingredient[0]
+        elif type(self.ingredient) == Tag:
+            ingredient = self.ingredient.val[0]
+        else:
+            ingredient = self.ingredient
+        ingredient_pos, fuel_pos, result_pos = (17, 17), (17, 107), (162, 57)
+        ingredient = get_image_by_Item(ingredient).resize((30, 30))
+        fuel = Image.open(path.join(path.dirname(__file__), 'data', 'images', 'coal.png')).resize((30, 30))
+        result = get_image_by_Item(self.result).resize((40, 40))
+        background.paste(ingredient, (ingredient_pos[0], ingredient_pos[1], ingredient_pos[0] + ingredient.width, ingredient_pos[1] + ingredient.height), ingredient)
+        background.paste(fuel, (fuel_pos[0], fuel_pos[1], fuel_pos[0] + fuel.width, fuel_pos[1] + fuel.height), fuel)
+        background.paste(result, (result_pos[0], result_pos[1], result_pos[0] + result.width, result_pos[1] + result.height), result)
+        return background
 
 
 # 高炉配方
@@ -156,6 +181,39 @@ class Crafting_shaped(Recipe):
             else:
                 rep += f'{item} 可以是 {[x.name for x in value]}\n'
         return rep
+    
+    def image(self) -> Image:
+        background = Image.open(path.join(path.dirname(__file__), 'data', 'images', 'crafting_shaped.png'))
+        pattern_pos = [
+            [(17, 17), (62, 17), (107, 17)],
+            [(17, 62), (62, 62), (107, 62)],
+            [(17, 107), (62, 107), (107, 107)]
+        ]
+        result_pos = (210, 60)
+        pattern = []
+        for i in range(len(self.pattern)):
+            row = []
+            for j in range(len(self.pattern[i])):
+                if self.pattern[i][j] == '/':
+                    row.append(None)
+                else:
+                    if type(self.key[self.pattern[i][j]]) == list:
+                        item = self.key[self.pattern[i][j]][0]
+                    elif type(self.key[self.pattern[i][j]]) == Tag:
+                        item = self.key[self.pattern[i][j]].val[0]
+                    else:
+                        item = self.key[self.pattern[i][j]]
+                    img = get_image_by_Item(item).resize((30, 30))
+                    row.append(img)
+            pattern.append(row)
+        result = get_image_by_Item(self.result).resize((38, 38))
+        for i in range(len(pattern)):
+            for j in range(len(pattern[i])):
+                if pattern[i][j] is None:
+                    continue
+                background.paste(pattern[i][j], (pattern_pos[i][j][0], pattern_pos[i][j][1], pattern[i][j].width + pattern_pos[i][j][0], pattern[i][j].height + pattern_pos[i][j][1]), pattern[i][j])
+        background.paste(result, (result_pos[0], result_pos[1], result_pos[0] + result.width, result_pos[1] + result.height), result)
+        return background
 
 
 # 无序配方
@@ -183,6 +241,27 @@ class Crafting_shapeless(Recipe):
             for key, value in cache.items():
                 rep += f'{key} 还可以是 {[x.name for x in value]}\n'
         return rep
+    
+    def image(self) -> Image:
+        background = Image.open(path.join(path.dirname(__file__), 'data', 'images', 'crafting_shapeless.png'))
+        ingredients_pos = [
+            [(17, 17), (62, 17), (107, 17)],
+            [(17, 62), (62, 62), (107, 62)],
+            [(17, 107), (62, 107), (107, 107)]
+        ]
+        result_pos = (205, 60)
+        ingredients = []
+        for item in self.ingredients:
+            if type(item) == Tag:
+                item = item.val[0]
+            ingredients.append(get_image_by_Item(item).resize((30, 30)))
+        result = get_image_by_Item(self.result).resize((38, 38))
+        for n in range(len(ingredients)):
+            i = n // 3
+            j = n % 3
+            background.paste(ingredients[n], (ingredients_pos[i][j][0], ingredients_pos[i][j][1], ingredients[n].width + ingredients_pos[i][j][0], ingredients[n].height + ingredients_pos[i][j][1]), ingredients[n])
+        background.paste(result, (result_pos[0], result_pos[1], result_pos[0] + result.width, result_pos[1] + result.height), result)
+        return background
 
 
 # 锻造台配方

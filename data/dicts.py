@@ -1,4 +1,4 @@
-from classes import *
+from ..classes import *
 import json
 
 # TODO 没写完

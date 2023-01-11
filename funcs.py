@@ -1,6 +1,6 @@
 import json
-from classes import *
-from data.dicts import namespace, tags, recipes
+from .classes import *
+from .data.dicts import namespace, tags, recipes
 
 
 def query_recipe_by_name(name: str) -> list:
@@ -9,5 +9,4 @@ def query_recipe_by_name(name: str) -> list:
         if recipe.result.name == name:
             result.append(recipe)
     return result
-
 
